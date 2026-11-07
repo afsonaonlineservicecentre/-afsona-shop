@@ -61,11 +61,10 @@ button:disabled{opacity:.6}
 <script>
 const cfg = window.AFSONA_CONFIG || {};
 
-if (
-  !cfg.SUPABASE_URL ||
-  !cfg.SUPABASE_URL.startsWith("https://") ||
-  !cfg.SUPABASE_ANON_KEY ||
-  !window.supabase
+const db = window.supabase.createClient(
+  cfg.SUPABASE_URL,
+  cfg.SUPABASE_ANON_KEY
+);
 ) {
   document.getElementById("message").textContent =
     "Supabase Config পরীক্ষা করুন।";
