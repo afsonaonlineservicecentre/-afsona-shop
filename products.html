@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFSONA Products</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#172033;padding:16px}
+header{background:#075e54;color:white;padding:18px;border-radius:12px}
+main{max-width:850px;margin:auto}
+.search{width:100%;padding:13px;margin:18px 0;border:1px solid #cbd5e1;border-radius:9px;font-size:16px}
+.product{background:white;padding:14px;margin-bottom:12px;border-radius:12px;display:flex;gap:14px;align-items:center;box-shadow:0 2px 8px #0001}
+.product img{width:90px;height:90px;object-fit:cover;border-radius:9px;background:#eee}
+.details{flex:1;min-width:0}
+.details h3{margin:0 0 8px;overflow-wrap:anywhere}
+.details p{margin:5px 0;color:#475569;font-size:14px}
+button{border:0;padding:9px 12px;border-radius:7px;background:#075e54;color:white;margin:4px}
+.delete{background:#dc2626}
+a{color:#075e54;text-decoration:none;font-weight:bold}
+#message{margin:15px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h2>AFSONA</h2>
+পণ্যের তালিকা
+</header>
+
+<p><a href="dashboard.html">← Dashboard</a> | <a href="add-product.html">➕ নতুন পণ্য</a></p>
+
+<input class="search" id="search" placeholder="পণ্যের নাম খুঁজুন...">
+
+<div id="message">পণ্য লোড হচ্ছে...</div>
+<div id="list"></div>
+</main>
+
+<script>
+const cfg=window.AFSONA_CONFIG||{};
+
+if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY||!window.supabase){
+  document.getElementById("message").textContent="Supabase Config ভুল আছে।";
+  throw new Error("Supabase config missing");
+}
+
+const db=window.supabase.createClient(
+  cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY
+);
+
+let allProducts=[];
+
+const money=n=>"₹"+Number(n||0).toFixed(2);
+
+async function loadProducts(){
+  const {data:userData,error:userError}=await db.auth.getUser();
+
+  if(userError||!userData.user){
+    location.href="login.html";
+    return;
+  }
+
+  const {data,error}=await db
+    .from("shop_products")
+    .select("*")
+    .eq("owner_id",userData.user.id)
+    .order("created_at",{ascending:false});
+
+  if(error)throw error;
+
+  allProducts=data||[];
+  render();
+}
+
+function render(){
+  const query=document.getElementById("search").value.toLowerCase();
+
+  const items=allProducts.filter(p=>
+    p.name.toLowerCase().includes(query)
+  );
+
+  document.getElementById("message").textContent=
+    items.length+" টি পণ্য পাওয়া গেছে।";
+
+  document.getElementById("list").innerHTML=items.map(p=>`
+    <div class="product">
+      <img src="${escapeHTML(p.image_url||"")}" alt="পণ্য">
+      <div class="details">
+        <h3>${escapeHTML(p.name)}</h3>
+        <p>ক্রয়মূল্য: ${money(p.purchase_price)}</p>
+        <p>স্টক: ${Number(p.stock)}</p>
+        <button onclick="editProduct('${p.id}')">Edit</button>
+        <button class="delete" onclick="deleteProduct('${p.id}')">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+window.editProduct=async function(id){
+  const p=allProducts.find(x=>x.id===id);
+  if(!p)return;
+
+  const name=prompt("পণ্যের নাম",p.name);
+  if(name===null)return;
+
+  const price=prompt("প্রতি পিস ক্রয়মূল্য",p.purchase_price);
+  if(price===null)return;
+
+  const stock=prompt("বর্তমান স্টক",p.stock);
+  if(stock===null)return;
+
+  const n=Number(price),s=Number(stock);
+
+  if(!name.trim()||!Number.isFinite(n)||n<0||
+     !Number.isInteger(s)||s<0){
+    alert("সঠিক তথ্য দিন।");
+    return;
+  }
+
+  const {error}=await db.from("shop_products")
+    .update({
+      name:name.trim(),
+      purchase_price:n,
+      stock:s
+    })
+    .eq("id",id);
+
+  if(error){alert(error.message);return;}
+
+  alert("পণ্য আপডেট হয়েছে।");
+  await loadProducts();
+};
+
+window.deleteProduct=async function(id){
+  const p=allProducts.find(x=>x.id===id);
+  if(!p)return;
+
+  if(!confirm("এই পণ্যটি মুছে ফেলতে চান? বিক্রির ইতিহাসে ব্যবহৃত পণ্য মুছতে নাও পারবেন।"))return;
+
+  const {error}=await db.from("shop_products")
+    .delete().eq("id",id);
+
+  if(error){
+    alert("মুছতে সমস্যা: "+error.message);
+    return;
+  }
+
+  await loadProducts();
+};
+
+document.getElementById("search")
+.addEventListener("input",render);
+
+loadProducts().catch(error=>{
+  document.getElementById("message").textContent=
+    "সমস্যা: "+error.message;
+});
+</script>
+</body>
+</html>
