@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AFSONA Shop Management</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#172033}
+header{background:#075e54;color:white;padding:20px}
+header h2{margin:0}
+header p{margin:7px 0 0;color:#d1fae5}
+main{max-width:950px;margin:auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:white;padding:18px;border-radius:13px;box-shadow:0 2px 10px #0000000c}
+.card h3{margin:0 0 10px;font-size:15px;color:#64748b}
+.number{font-size:25px;font-weight:bold;color:#075e54}
+.menu{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+.menu a{background:white;padding:18px;border-radius:12px;text-decoration:none;color:#075e54;font-weight:bold;border:1px solid #e2e8f0}
+h3.section{margin-top:28px}
+.notice{background:#fff7ed;padding:14px;border-radius:10px;margin-top:20px;color:#9a3412}
+footer{text-align:center;padding:25px;color:#64748b}
+@media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.menu{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<h2>AFSONA</h2>
+<p>Shop Management System</p>
+</header>
+
+<main>
+<h3>দোকানের ড্যাশবোর্ড</h3>
+
+<div class="grid">
+<div class="card">
+<h3>মোট পণ্য</h3>
+<div class="number">0</div>
+</div>
+<div class="card">
+<h3>মোট স্টক</h3>
+<div class="number">0</div>
+</div>
+<div class="card">
+<h3>মোট বিক্রি</h3>
+<div class="number">₹0</div>
+</div>
+<div class="card">
+<h3>মোট লাভ</h3>
+<div class="number">₹0</div>
+</div>
+</div>
+
+<h3 class="section">দোকানের কাজ</h3>
+<div class="menu">
+<a href="#">➕ পণ্য যোগ করুন</a>
+<a href="#">📦 পণ্যের তালিকা</a>
+<a href="#">🛒 পণ্য বিক্রি</a>
+<a href="#">📋 বিক্রির ইতিহাস</a>
+<a href="#">📊 দৈনিক রিপোর্ট</a>
+<a href="#">💰 জমা ও খরচ</a>
+<a href="#">📄 PDF / Excel রিপোর্ট</a>
+</div>
+
+<div class="notice">
+<strong>AFSONA:</strong> আপনার দোকানের পণ্য, বিক্রি ও লাভ-ক্ষতির হিসাব এক জায়গায় রাখুন।
+</div>
+</main>
+
+<footer>© 2026 AFSONA Shop Management</footer>
+</body>
+</html>
