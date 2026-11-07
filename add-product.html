@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFSONA - Add Product</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:#f1f5f9;font-family:Arial,sans-serif;color:#172033}
+.box{max-width:500px;margin:20px auto;background:white;padding:22px;border-radius:16px;box-shadow:0 5px 20px #0001}
+h2{text-align:center;color:#075e54}
+label{display:block;margin-top:17px;font-weight:bold}
+input{width:100%;padding:13px;margin-top:7px;border:1px solid #cbd5e1;border-radius:9px;font-size:16px}
+button{width:100%;padding:14px;margin-top:22px;background:#087f5b;color:white;border:0;border-radius:9px;font-size:17px;font-weight:bold}
+button:disabled{opacity:.6}
+.info{background:#ecfdf5;padding:14px;margin-top:18px;border-radius:9px;line-height:1.8}
+#preview{display:none;width:130px;height:130px;object-fit:cover;margin-top:12px;border-radius:10px}
+#message{margin-top:15px;text-align:center;overflow-wrap:anywhere}
+a{display:block;text-align:center;margin-top:20px;color:#075e54;text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h2>AFSONA</h2>
+<h3>নতুন পণ্য যোগ করুন</h3>
+
+<form id="form">
+<label>পণ্যের নাম</label>
+<input id="name" type="text" placeholder="যেমন: A4 Paper" required>
+
+<label>পণ্যের ছবি</label>
+<input id="image" type="file" accept="image/jpeg,image/png,image/webp" required>
+<img id="preview" alt="পণ্যের ছবি">
+
+<label>মোট কেনা পরিমাণ</label>
+<input id="quantity" type="number" min="1" step="1" placeholder="100" required>
+
+<label>মোট ক্রয়মূল্য (₹)</label>
+<input id="cost" type="number" min="0" step="0.01" placeholder="250" required>
+
+<div class="info">
+প্রতি পিস ক্রয়মূল্য: <strong id="unit">₹0.00</strong><br>
+মোট স্টক: <strong id="stock">0</strong>
+</div>
+
+<button id="save" type="submit">পণ্য সংরক্ষণ করুন</button>
+</form>
+
+<div id="message"></div>
+<a href="dashboard.html">← Dashboard-এ ফিরে যান</a>
+</div>
+
+<script>
+const cfg = window.AFSONA_CONFIG || {};
+
+if (!cfg.SUPABASE_URL ||
+    !cfg.SUPABASE_URL.startsWith("https://") ||
+    !cfg.SUPABASE_ANON_KEY ||
+    !window.supabase) {
+  document.getElementById("message").textContent =
+    "Supabase Config ভুল আছে। config.js পরীক্ষা করুন।";
+  throw new Error("Supabase config missing");
+}
+
+const db = window.supabase.createClient(
+  cfg.SUPABASE_URL,
+  cfg.SUPABASE_ANON_KEY
+);
+
+const $ = id => document.getElementById(id);
+let currentUser = null;
+
+async function checkLogin(){
+  const {data,error} = await db.auth.getUser();
+
+  if(error || !data.user){
+    $("message").textContent = "প্রথমে Login করুন।";
+    $("save").disabled = true;
+    return false;
+  }
+
+  currentUser = data.user;
+  return true;
+}
+
+function calculate(){
+  const q = Number($("quantity").value);
+  const c = Number($("cost").value);
+
+  $("unit").textContent =
+    "₹" + (q > 0 ? c/q : 0).toFixed(2);
+
+  $("stock").textContent = q > 0 ? q : 0;
+}
+
+$("quantity").addEventListener("input",calculate);
+$("cost").addEventListener("input",calculate);
+
+$("image").addEventListener("change",()=>{
+  const file = $("image").files[0];
+  if(!file)return;
+
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+    alert("JPG, PNG অথবা WEBP ছবি দিন।");
+    $("image").value="";
+    return;
+  }
+
+  if(file.size > 5*1024*1024){
+    alert("ছবি 5 MB-এর কম হতে হবে।");
+    $("image").value="";
+    return;
+  }
+
+  $("preview").src = URL.createObjectURL(file);
+  $("preview").style.display="block";
+});
+
+$("form").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  $("message").textContent="";
+
+  if(!await checkLogin())return;
+
+  const name = $("name").value.trim();
+  const quantity = Number($("quantity").value);
+  const totalCost = Number($("cost").value);
+  const file = $("image").files[0];
+
+  if(!name || !file || !Number.isInteger(quantity) ||
+     quantity<=0 || !Number.isFinite(totalCost) || totalCost<0){
+    alert("সব তথ্য সঠিকভাবে দিন।");
+    return;
+  }
+
+  $("save").disabled=true;
+  $("save").textContent="সংরক্ষণ হচ্ছে...";
+
+  let uploadedPath = null;
+
+  try{
+    const ext = file.name.split(".").pop().toLowerCase();
+    const path = currentUser.id + "/" + crypto.randomUUID() + "." + ext;
+
+    const {error:uploadError} = await db.storage
+      .from("product-images")
+      .upload(path,file,{
+        cacheControl:"3600",
+        upsert:false,
+        contentType:file.type
+      });
+
+    if(uploadError)throw uploadError;
+    uploadedPath = path;
+
+    const {data:imageData} = db.storage
+      .from("product-images")
+      .getPublicUrl(path);
+
+    const {error:insertError} = await db
+      .from("shop_products")
+      .insert({
+        owner_id:currentUser.id,
+        name:name,
+        purchase_price:totalCost/quantity,
+        stock:quantity,
+        image_url:imageData.publicUrl
+      });
+
+    if(insertError)throw insertError;
+
+    $("message").style.color="green";
+    $("message").textContent="✅ পণ্য সফলভাবে সংরক্ষণ হয়েছে!";
+
+    $("form").reset();
+    $("preview").style.display="none";
+    calculate();
+
+  }catch(error){
+    $("message").style.color="red";
+    $("message").textContent="সমস্যা: "+error.message;
+
+    // Upload সফল হলেও database insert ব্যর্থ হলে ছবি পরিষ্কার করা
+    if(uploadedPath){
+      await db.storage.from("product-images").remove([uploadedPath]);
+    }
+  }finally{
+    $("save").disabled=false;
+    $("save").textContent="পণ্য সংরক্ষণ করুন";
+  }
+});
+
+checkLogin();
+</script>
+</body>
+</html>
