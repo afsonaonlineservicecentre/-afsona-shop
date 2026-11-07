@@ -1,6 +1,6 @@
 
 window.AFSONA_CONFIG = {
-  SUPABASE_URL: "https://hfntnguxhsbscocgvaca.supabase.co/rest/v1/",
+  SUPABASE_URL: "https://hfntnguxhsbscocgvaca.supabase.co",
 
   SUPABASE_ANON_KEY: "sb_publishable_fN6HtOPI9UwX8LcPXuYPrA_l5g80YfE"
 };
